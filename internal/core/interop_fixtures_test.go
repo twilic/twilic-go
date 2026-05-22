@@ -73,6 +73,7 @@ func TestInteropFixtures_SessionEncodeDecodeRoundtrip(t *testing.T) {
 
 func TestInteropFixtures_DecodeRustServerFrames(t *testing.T) {
 	root := interopModuleRoot(t)
+	interopRequireTwilicRust(t, root)
 	rustManifest := filepath.Join(root, "scripts", "rust-server-fixtures", "Cargo.toml")
 	if _, err := os.Stat(rustManifest); err != nil {
 		t.Skipf("rust fixtures not available: %v", err)
@@ -116,6 +117,7 @@ func TestInteropFixtures_DecodeRustServerFrames(t *testing.T) {
 
 func TestInteropFixtures_RustDecodesGoFramesWithSameValues(t *testing.T) {
 	root := interopModuleRoot(t)
+	interopRequireTwilicRust(t, root)
 	rustCheck := filepath.Join(root, "scripts", "rust-client-check", "Cargo.toml")
 	if _, err := os.Stat(rustCheck); err != nil {
 		t.Skipf("rust client check not available: %v", err)
@@ -187,4 +189,23 @@ func interopModuleRoot(t *testing.T) string {
 		}
 		dir = parent
 	}
+}
+
+func interopRequireTwilicRust(t *testing.T, moduleRoot string) {
+	t.Helper()
+	if _, err := exec.LookPath("cargo"); err != nil {
+		t.Skip("cargo not found in PATH")
+	}
+	candidates := []string{
+		filepath.Join(moduleRoot, "..", "twilic-rust"),
+	}
+	if env := os.Getenv("TWILIC_RUST_ROOT"); env != "" {
+		candidates = append([]string{env}, candidates...)
+	}
+	for _, root := range candidates {
+		if _, err := os.Stat(filepath.Join(root, "Cargo.toml")); err == nil {
+			return
+		}
+	}
+	t.Skip("twilic-rust not found (expected ../twilic-rust sibling or TWILIC_RUST_ROOT)")
 }
